@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="">
+  <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors">
+  <meta name="generator" content="Hugo 0.79.0">
+  <title>Chamber Usage</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-giJF6kkoqNQ00vy+HMDP7azOuL0xtbfIcaT9wjKHr8RbDVddVHyTfAAsrekwKmP1" crossorigin="anonymous">
+  <link rel="canonical" href="https://getbootstrap.com/docs/5.0/examples/dashboard/">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js" integrity="sha384-ygbV9kiqUc6oa4msXn9868pTtWMgiQaeYH7/t7LECLbyPA2x65Kgf80OJFdroafW" crossorigin="anonymous"></script>
+  <!-- Bootstrap core CSS -->
+  <!-- Favicons -->
+<style>
+  .bd-placeholder-img {
+  font-size: 1.125rem;
+  text-anchor: middle;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+  }
+
+  @media (min-width: 768px) {
+  .bd-placeholder-img-lg {
+      font-size: 3.5rem;
+  }
+  }
+  div.table-responsive {float: right;width: 100%}
+  div.table2-responsive {float: right;width: 100%;height:50%}
+  div.aside {float: left;width: 45%;height:200px;background-color:whitesmoke;}
+  div.aside2 {float: left;width: 45%;height:300px;padding-top:20px}
+  div.aside3 {float: right;width: 45%;height:300px;padding-top:20px}
+  div.aside4 {float: right;width: 50%;height:100%;padding-top:0px}
+</style>
+  <!-- Custom styles for this template -->
+  <link href="https://getbootstrap.com/docs/5.0/examples/dashboard/dashboard.css" rel="stylesheet">
+</head>
+
+<body onload="getwhiteboard()">
+    <header class="navbar navbar-dark sticky-top bg-dark flex-md-nowrap p-0 shadow">
+      <a class="navbar-brand col-md-3 col-lg-2 me-0 px-3" href="/whiteboard">WNC</a>
+      <ul class="navbar-nav px-3">
+        {% if request.user.is_authenticated %}
+        <li class="nav-item text-nowrap"><a class="nav-link" href="/account/logout">Sign out</a></li>
+        {% else %}
+        <li class="nav-item text-nowrap"><a class="nav-link" href="/account/login">Sign in</a></li>
+        {% endif %}
+      </ul>
+    </header>
+    <div class="container-fluid">
+      <div class="row">
+        <nav id="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+          <div class="position-sticky pt-3">
+            <ul class="nav flex-column">
+              <li class="nav-item">
+                <a class="nav-link active" aria-current="page" href="#">
+                  <span data-feather="home"></span>
+                  SG64
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#">
+                  <span data-feather="file"></span>
+                  Orders
+                </a>
+              </li>
+            </ul>
+          </div>
+        </nav>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+          <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">Whiteboard</h1>
+          </div>
+
+          <div class="aside4 ">
+            <h4 >排隊區</h4>
+            <div class="table-responsive">
+              <table class="table table-sm table-bordered table-hover" style="width:90%;text-align:center" id="lineboard">
+              </table>
+            </div>
+            <h4>已量測</h4>
+            <div class="table2-responsive">
+              <table class="table table-sm table-bordered table-hover" style="width:90%;text-align:center" id="lineboard2">
+              </table>
+            </div>
+          </div>
+          <div class="aside ">
+            <div style="height:100%;width:50%;float:left;text-align:center;background-color:ivory;">
+                <h2>Now Number</h2>
+                <h2 style="color: tomato;" id="now_num"></h2>
+                <h2>User</h2>
+                <h2 id="now_user"></h2>
+            </div>
+            <div style="width:50%;float:right;text-align:center">
+              <h2>Next Number</h2>
+              <h2 style="color: tomato;" id="next_num">None</h2>
+              <h2>User</h2>
+              <h2 id="next_user">None</h2>
+            </div>
+          </div>
+          <div class="aside2">
+            <form method="POST" style="float:left;width:50%">
+              {{form.as_p}}
+              {% csrf_token %}
+              <p><input type="submit" value="submit"></p>
+            </form>
+
+            <div style="float:ritht" id="logform">
+              <p><label for="userID" id="labelID" style="display:block">ID報到</label>
+              <input type="text" name="demo-name" id="userID" style="display:block" value=""></p>
+              <input type="button" value="報到" style="display:block"id="login" onclick="getapi()">
+              <input type="button" value="刷退" style="display:none" id="logout" onclick="getapi2()">
+            </div>
+          </div>
+          <div class="aside3">
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.28.0/dist/feather.min.js" integrity="sha384-uO3SXW5IuS1ZpFPKugNNWqTZRRglnUJK6UAZ/gxOX80nxEkN9NcGZTftn6RzhGWE" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js" integrity="sha384-zNy6FEbO50N+Cg5wap8IKA4M/ZnLJgzc6w2NqACZaK0u0FXfOWRRJOnQtpZun8ha" crossorigin="anonymous"></script>
+    <script src="https://getbootstrap.com/docs/5.0/examples/dashboard/dashboard.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script type="text/javascript" >
+
+      let myrefresh=()=>{
+        window.location.reload();
+      }
+      setInterval('myrefresh()', 900000);
+
+      const getwhiteboard=()=>{
+        axios.get('/whiteboard/api/lineboard')
+        .then(function (response){
+          console.log(response);
+          boarddata(response.data);
+          boarduse(response.data)
+        })
+      }
+
+      //insert table
+      const boarddata=(wb_data)=>{
+        let make_table=document.getElementById("lineboard");
+        let x='<thead class="bg-dark text-white"><tr><th>列號</th><th>使用者</th><th>工號</th><th>分機</th><th>頻段</th><th>圈數</th><th></th></tr></thead>'
+        +'<tbody>';
+        if (wb_data['user']!='None'){
+          for (let i=0;i<wb_data['user'].length;i++){ //取出lineUser的資料
+            if (wb_data['user'][i]['fields']['cutline']==true){
+              sub_tr='<tr class="table-danger" id='}
+            else{sub_tr='<tr id='}
+            x+=sub_tr+wb_data['user'][i]['fields']['line_num']+'><td>'+wb_data['user'][i]['fields']['line_num']+'</td><td >'+wb_data['user'][i]['fields']['user']+'</td><td >'+wb_data['user'][i]['fields']['employeeID']+'</td><td >'+wb_data['user'][i]['fields']['extension_num']+'</td><td >'+wb_data['user'][i]['fields']['frequent']+'</td><td >'+wb_data['user'][i]['fields']['circuleNum']+'</td><td><input type="button" value="放棄" onclick="quit('+wb_data['user'][i]['fields']['line_num']+')"></td></tr>';
+        }};
+        x+='</tbody>';
+        make_table.innerHTML=x;
+
+        let make_table2=document.getElementById("lineboard2");
+        let y='<thead class="bg-dark text-white"><tr><th>列號</th><th>使用者</th><th>工號</th><th>分機</th></tr></thead>'
+        +'<tbody>';
+        if (wb_data['doneuser']!='None'){
+          for (let i=0;i<wb_data['doneuser'].length;i++){ //取出done的資料
+            if (wb_data['doneuser'][i]['fields']['done']==false){
+              sub_tr='<tr id='}
+            else{sub_tr='<tr style="text-decoration:line-through" id='}
+            y+=sub_tr+wb_data['doneuser'][i]['fields']['line_num']+'><td>'+wb_data['doneuser'][i]['fields']['line_num']+'</td><td >'+wb_data['doneuser'][i]['fields']['user']+'</td><td >'+wb_data['doneuser'][i]['fields']['employeeID']+'</td><td >'+wb_data['doneuser'][i]['fields']['extension_num']+'</td></tr>';
+        }};
+        y+='</tbody>';
+        make_table2.innerHTML=y;
+      }
+
+      let quit=(num)=>{
+        axios.get("/whiteboard/api/authUser/logquit/"+num)
+          .then(function (response) {
+            console.log(response);
+            getwhiteboard();
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+      }
+
+      let getapi=()=>{
+        let authUser=document.getElementById("userID").value;
+        console.log(authUser)
+        axios.get("/whiteboard/api/authUser/login?user="+authUser)
+          .then(function (response) {
+            console.log(response);
+            getwhiteboard();
+            alert(response['data']['Message']);
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+      }
+
+      let getapi2=()=>{
+        axios.get("/whiteboard/api/authUser/logout")
+        .then(function (response) {
+            console.log(response);
+            getwhiteboard();
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+      }
+
+      let boarduse=(data)=>{
+        document.getElementById("next_user").innerHTML=data['nextUserNam'];
+        document.getElementById("next_num").innerHTML=data['nextUserNum'];
+        if (data['nowUserNam']!=undefined&data['nowUserNam']!="None"){
+          document.getElementById("now_user").innerHTML=data['nowUserNam'];
+          document.getElementById("now_num").innerHTML=data['nowUserNum'];
+          document.getElementById("login").style.display='none';
+          document.getElementById("userID").style.display='none';
+          document.getElementById("labelID").style.display='none';
+          document.getElementById("logout").style.display='block';
+        }else{
+          document.getElementById("now_user").innerHTML='None';
+          document.getElementById("now_num").innerHTML='None';
+          document.getElementById("login").style.display='block';
+          document.getElementById("userID").style.display='block';
+          document.getElementById("userID").value='';
+          document.getElementById("labelID").style.display='block';
+          document.getElementById("logout").style.display='none';
+        }
+      }
+    </script>
+</body>
+</html>

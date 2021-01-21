@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+    <script>
+
+        class MyHead extends React.Component{
+            render(){
+                return React.createElement("H"+this.props.level,null,"Hello World");
+            }
+        }
+
+        //
+        class MyHeadlist extends React.Component{
+            constructor(props){ //此段如果沒有寫，會以React.Component的建構式處理
+                super(props); //一定要先呼叫父類別的建構式
+                this.state={maxLevel:props.start};//初始化狀態為空白物件 or {data:10}
+            }
+
+            componentWillMount(){ //組件將要繪製前的時刻
+                this.intervalid=window.setInterval(()=>{
+                    //每秒鐘執行這裡的邏輯
+                    this.setState((currnetState,currentProps)=>{
+                        if (currnetState.maxLevel>currentProps.end+1){
+                            return currnetState; //回傳原始狀態後，會停止更新
+                        }else{ return {maxLevel:currnetState.maxLevel+1};}
+                    });
+                },1000);
+            }
+
+            componentWillUnMount(){ //組件將要刪除前的時刻
+                window.clearInterval(this.intervalid);
+            }
+
+            render(){ //繪製MyHeadlist組件的邏輯
+                let heads=[];
+                let head;
+                for(let i=1;i<this.state.maxLevel;i++){
+                    head=React.createElement(MyHead,{level:i});
+                    heads.push(head);
+                }
+                return React.createElement("DIV",null,heads); //放子元件
+            }
+        }
+
+
+
+        window.addEventListener("load",()=>{
+            //1. 建立自訂的React組件實體，給定屬性
+            let myComponent=React.createElement(MyHeadlist,{start:2,end:8});
+            //2. 將建立好的React組件實體化到容器中
+            ReactDOM.render(myComponent,document.body);
+        });
+
+    </script>
+
+</head>
+<body>
+</body>
+</html>
