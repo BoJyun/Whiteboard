@@ -4,12 +4,68 @@ from django.core import serializers
 from .forms import peopleForm,adminForm
 from .models import people
 import json,datetime
-from .nowUser import nowUser,nextUser
+# from .nowUser import nowUser,nextUser
+import threading
+import socket
+from .tcpserver import ThreadTCPserver,Handler_TCPServer
 
 # Create your views here.
+def MyTCP():
+    tcp_server=ThreadTCPserver(("127.0.0.1",8001),Handler_TCPServer)
+    tcp_server.serve_forever()
 
-User=nowUser()
-NextUser=nextUser()
+
+def DayTime():
+    x=datetime.datetime.now()
+    return [x.year,x.month,x.day]
+
+# def TCPreader():
+#     print("123")
+#     server=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+#     bind_ip="127.0.0.1"
+#     bind_port=8001
+#     server.bind((bind_ip,bind_port))
+#     server.listen(2)
+
+#     while True:
+#         try:
+#             print('wait for connecting ...')
+#             client,addr=server.accept()
+#             print('Connected by ',addr)
+#             try:
+#                 while True:
+#                     print(3)
+#                     data=client.recv(1024)
+#                     print("Client recv data: ",data)
+#                     print(4)
+#                     if data==" ":
+#                         client.send(bytes("please send the message.","utf-8"))
+#                     else:
+#                         client.send(bytes("server received you message.","utf-8"))
+#                     print(5)
+#             except Exception as e:
+#                 print(1)
+#                 print(e)
+#         except Exception as e:
+#             print(2)
+#             print(e)
+# read_t=threading.Thread(target=TCPreader)
+# read_t.start()
+# User=nowUser()
+# NextUser=nextUser()
+
+class USER_TYPE():
+    def __init__(self):
+        self.NowUser_name="None"
+        self.NowUser_EmployeeID=0
+        self.NowUser_ExtensionNum=0
+        self.NextUser_name="None"
+        self.NextUser_EmployeeID=0
+        self.NextUser_ExtensionNum=0
+
+User_Type=USER_TYPE()
+# CardReader=threading.Thread(target=MyTCP)
+# CardReader.start()
 
 def whiteboard(request):
     if request.method=='POST':
@@ -24,7 +80,7 @@ def whiteboard(request):
             new_one.save()
             return redirect('/whiteboard')
 
-    elif request.user.is_authenticated:
+    if request.user.is_authenticated:
         form=adminForm()
     else:
         form=peopleForm()
@@ -32,13 +88,16 @@ def whiteboard(request):
     return render(request,'whiteboard.html',{'form':form})
 
 def data_people(request):
+    t=DayTime()
+    day=str(t[0])+"-"+str(t[1])+"-"+str(t[2])
     data=list(people.objects.filter(done=False)) #who is not done the measurement
-    data2=people.objects.filter(done=True)       #who is done the measurement
+    data2=people.objects.filter(done=True,DownTime=day) #who is done the measurement
 
     j=0
-    for i in range(0,len(data)):  #
+    for i in range(0,len(data)):
         try:
-            print(1)
+            if data[0].cutline==True and i==0:
+                continue
             if data[i].cutline==True:
                 temp=data[j]
                 data[j]=data[i]
@@ -46,29 +105,30 @@ def data_people(request):
                     data[k]=data[k-1]
                 data[j+1]=temp
                 j+=1
-        except IndexError:
-            print(i,j)
+        except Exception as e:
             continue
-    print(data)
+
     if len(data)==0:
-        NextUser.userNam='None'
-        NextUser.userEmID=0
-        NextUser.userNum=0
+        User_Type.NextUser_name='None'
+        User_Type.NextUser_EmployeeID=0
+        User_Type.NextUser_ExtensionNum=0
         qs='None'
     else:
-        qs = serializers.serialize('json', data,fields=('user','employeeID','extension_num','line_num','done','cutline','frequent','circuleNum'))
+        qs = serializers.serialize('json', data,fields=('user','employeeID','extension_num','line_num','done',
+        'cutline','frequent','circuleNum'))
         qs= json.loads(qs)
-        NextUser.userNam=data[0].user
-        NextUser.userEmID=data[0].employeeID
-        NextUser.userNum=data[0].line_num
+        User_Type.NextUser_name=data[0].user
+        User_Type.NextUser_EmployeeID=data[0].employeeID
+        User_Type.NextUser_ExtensionNum=data[0].line_num
 
     if len(data2)==0:
         qs2='None'
     else:
         qs2 = serializers.serialize('json', data2,fields=('user','employeeID','extension_num','line_num'))
         qs2= json.loads(qs2)
-
-    return JsonResponse({'user':qs,'doneuser':qs2,'nowUserNam':User.userNam,'nowUserNum':User.userNum,'nextUserNam':NextUser.userNam,'nextUserNum':NextUser.userNum})
+    # print(request.user)
+    return JsonResponse({'user':qs,'doneuser':qs2,'nowUserNam':User_Type.NowUser_name,'nowUserNum':User_Type.NowUser_ExtensionNum,
+    'nextUserNam':User_Type.NextUser_name,'nextUserNum':User_Type.NextUser_ExtensionNum,'logUser':str(request.user)})
 
 def authUserlogin(request): #讀卡機報到
     if request.method=='GET':
@@ -77,16 +137,17 @@ def authUserlogin(request): #讀卡機報到
             # https://chinese.freecodecamp.org/news/python-is-operator/
             userData=people.objects.filter(employeeID=userEmID,done=False)
             if userData is not None:
-                if userData.filter(cutline="True") is not None:
+                if userData.filter(cutline="True").first() is not None:
                     now_user=userData.filter(cutline="True").first()
                 else:
                     now_user=userData.first()
-                User.userNam=now_user.user
-                User.userNum=now_user.line_num
-                User.userEmID=userEmID
+                User_Type.NowUser_name=now_user.user
+                User_Type.NowUser_ExtensionNum=now_user.line_num
+                User_Type.NowUser_EmployeeID=userEmID
                 now_user.done=True
                 now_user.save()
-                return HttpResponse(json.dumps({"Message":"{id}報到成功".format(id = now_user.user),"nowUserNam":now_user.user,"nowUserNum":now_user.line_num}),"application/json")
+                return HttpResponse(json.dumps({"Message":"{id}報到成功".format(id = User_Type.NowUser_name),"nowUserNam":User_Type.NowUser_name,
+                "nowUserNum":User_Type.NowUser_ExtensionNum}),"application/json")
         else:
             return HttpResponse(json.dumps({"Message":"您尚未預約或請輸入正確工號"}))
 
@@ -94,11 +155,11 @@ def authUserlogin(request): #讀卡機報到
 
 def authUserlogout(request): #讀卡機刷退
     downTime=datetime.date.today()
-    now_user=people.objects.filter(user=User.userNam,employeeID=User.userEmID,line_num=User.userNum)
+    now_user=people.objects.filter(user=User_Type.NowUser_name,employeeID=User_Type.NowUser_EmployeeID,line_num=User_Type.NowUser_ExtensionNum)
     now_user.update(done=True,DownTime=downTime)
-    User.userNam="None"
-    User.userEmID=0
-    User.userNum=0
+    User_Type.NowUser_name="None"
+    User_Type.NowUser_ExtensionNum=0
+    User_Type.NowUser_EmployeeID=0
 
     return HttpResponse(json.dumps({"Message":"刷退成功"}))
 
@@ -108,7 +169,6 @@ def authUserlogquit(request,num):
     quit_user.save()
 
     return HttpResponse(json.dumps({"Message":"棄單"}))
-
 
 #https://blog.csdn.net/weixin_42134789/article/details/80520500
 #https://blog.csdn.net/weixin_43789195/article/details/106072445

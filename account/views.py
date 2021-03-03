@@ -28,6 +28,7 @@ def userlogin(request):
             print(cd)
             user=authenticate(request,username=cd['username'],password=cd['password'])
             print(user)
+            print(type(user))
             if user is not None:
                 if user.is_active:
                     login(request,user)
