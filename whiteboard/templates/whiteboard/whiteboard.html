@@ -107,12 +107,14 @@
               <p><input type="submit" value="submit"></p>
             </form>
 
+            {% if request.user.is_authenticated %}
              <div style="float:ritht" id="logform">
               <p><label for="userID" id="labelID" style="display:block">ID報到</label>
               <input type="text" name="demo-name" id="userID" style="display:block" value=""></p>
               <input type="button" value="報到" style="display:block"id="login" onclick="getapi()">
               <input type="button" value="刷退" style="display:none" id="logout" onclick="getapi2()">
             </div>
+            {% endif %}
 
           </div>
           <div class="aside3">
@@ -127,10 +129,22 @@
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <script type="text/javascript" >
 
-      let myrefresh=()=>{
-        window.location.reload();
-      }
-      setInterval('myrefresh()', 900000);
+      // var roomName = {{ room_name_json }};
+      var chatSocket = new WebSocket('ws://127.0.0.1:8000/whiteboard/ws/chat/');
+      // var chatSocket = new WebSocket('ws://172.18.109.101:8000/whiteboard/ws/chat/');
+
+      chatSocket.onclose = function(e) {console.error('Chat socket closed unexpectedly');};
+
+      chatSocket.onmessage = function(e) {
+        var data = JSON.parse(e.data);
+        console.log( data );
+        getwhiteboard();
+    };
+
+      // let myrefresh=()=>{
+      //   getwhiteboard();
+      // }
+      // setInterval(myrefresh, 100000); //10分鐘
 
       const getwhiteboard=()=>{
         axios.get('/whiteboard/api/lineboard')

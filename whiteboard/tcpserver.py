@@ -28,3 +28,7 @@ if __name__=="__main__":
     tcp_server.serve_forever()
 
 
+# https://www.cnblogs.com/fishou/p/4175732.html
+# https://blog.csdn.net/qq_31362767/article/details/103758119
+# https://github.com/XZHhengge/smarthome_1809142054/blob/master/smarthome_1809142054/urls.py
+# https://www.cnblogs.com/Zzbj/p/9664404.html

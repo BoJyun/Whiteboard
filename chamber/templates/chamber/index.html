@@ -1,0 +1,225 @@
+{% extends "chamber/default/base.html" %}
+{% block content %}
+<div class="container-fluid main-container" >
+<div class="row">
+  {% include "chamber/default/nav.html" %}
+  <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4">
+    <h4 id="date"></h4>
+    <hr size="20px" align="center" width="100%">
+    <h1 class="h2">CATR Chamber Usage</h1>
+    <canvas class="my-4 w-100" id="CATR_chart" width="500" height="200"></canvas>
+    <hr size="20px" align="center" width="100%">
+    <h1 class="h2">Aten_5G Chamber Usage</h1>
+    <canvas class="my-4 w-100" id="Aten_5G_chart" width="500" height="200"></canvas>
+    <hr size="20px" align="center" width="100%">
+    <h1 class="h2">Aten_4G Chamber Usage</h1>
+    <canvas class="my-4 w-100" id="Aten_4G_chart" width="500" height="200"></canvas>
+    <hr size="20px" align="center" width="100%">
+    <h3 id="stitle" width=50% style=float:left>BG Chamber Usage</h3>
+    <h3 width=50% style=float:right>(hr)</h3>
+    <div class="table-responsive" id="BGlist">
+    </div>
+  </main>
+</div>
+</div>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+<script>window.jQuery || document.write('<script src="/docs/4.5/assets/js/vendor/jquery.slim.min.js"><\/script>')</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.9.0/feather.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.3/Chart.min.js"></script>
+<!-- https://adamj.eu/tech/2020/02/18/safely-including-data-for-javascript-in-a-django-template/  -->
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script>
+  // const logger = () =>{
+  //   console.log("asdfasf")
+  // }
+  // const logger = () => console.log("asdfasdf")
+  const test = () =>{
+  console.log("test")
+  document.getElementById("stitle").innerHTML="testr"
+  document.getElementById("someone").value="sometime"
+}
+  const logger = () => {
+    axios.get('/chamber/AllBG')
+    .then(function (response) {
+          // console.log(response.data);
+          console.log(response);
+          /*window.alert(response.data['CATR']['SAS']);*/
+          document.getElementById("date").innerHTML=response.data['time'][0]+"/"+response.data['time'][1]+"/1-"+response.data['time'][0]+"/"+response.data['time'][1]+"/"+response.data['time'][2]
+          chamber(response);
+          addTable(response);
+        })
+  }
+
+  /*const BGlog=(request)=>{
+    axios.get('BG/'+request)
+    .then(function (response) {
+          // console.log(response.data);
+          console.log(response);
+          window.alert(response.data['CATR']['SAS']);
+          chamber(response);
+          addTable(response);
+        })
+  }*/
+
+// 資源="ADSFASDFA"&開始="asdfasdfsa"
+  /*const getapi = () =>{
+    axios.get("/CATR").then((val)=>{document.getElementById("user")=val.user}).catch(()=>{})
+  }*/
+
+   /*let and const https://ithelp.ithome.com.tw/articles/10203715*/
+ /*let ac=JSON.parse({{detail|safe}});
+  console.log(ac)*/
+  function chamber(resp){
+    let ctx = document.getElementById('CATR_chart');
+    /*window.alert(catr['SAS']);*/
+    let BG=resp.data['CATR'];
+    /*window.alert(catr);*/
+    var myChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: [
+          'SAS',
+          'AIS',
+          'Connecting Home',
+          'Networking',
+          'ATD',
+        ],
+        datasets: [{
+          data: [
+          BG['SAS'],
+          BG['AIS'],
+          BG['CH'],
+          BG['NW'],
+          BG['ATD'],
+          ],
+          lineTension: 0,
+          backgroundColor:'rgba(54, 162, 235, 0.2)',
+          borderColor: '#007bff',
+          borderWidth: 4,
+          pointBackgroundColor: '#007bff'
+        }]
+      },
+      options: {
+        scales: {
+          xAxes: [{
+            barPercentage: 0.5
+        }],
+          yAxes: [{
+            ticks: {
+              beginAtZero: true
+            }
+          }]
+        },
+        legend: {
+          display: false
+        }
+      }
+    });
+
+    ctx = document.getElementById('Aten_5G_chart');
+    /*window.alert(catr['SAS']);*/
+    BG=resp.data['Aten_5G'];
+    /*window.alert(catr);*/
+    var myChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: [
+          'SAS',
+          'AIS',
+          'Connecting Home',
+          'Networking',
+          'ATD',
+        ],
+        datasets: [{
+          data: [
+          BG['SAS'],
+          BG['AIS'],
+          BG['CH'],
+          BG['NW'],
+          BG['ATD'],
+          ],
+          lineTension: 0,
+          backgroundColor:'rgba(54, 162, 235, 0.2)',
+          borderColor: '#007bff',
+          borderWidth: 4,
+          pointBackgroundColor: '#007bff'
+        }]
+      },
+      options: {
+        scales: {
+          xAxes: [{
+            barPercentage: 0.5
+        }],
+          yAxes: [{
+            ticks: {
+              beginAtZero: true
+            }
+          }]
+        },
+        legend: {
+          display: false
+        }
+      }
+    });
+
+    ctx = document.getElementById('Aten_4G_chart');
+    /*window.alert(catr['SAS']);*/
+    BG=resp.data['Aten_4G'];
+    /*window.alert(catr);*/
+    var myChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: [
+          'SAS',
+          'AIS',
+          'Connecting Home',
+          'Networking',
+          'ATD',
+        ],
+        datasets: [{
+          data: [
+          BG['SAS'],
+          BG['AIS'],
+          BG['CH'],
+          BG['NW'],
+          BG['ATD'],
+          ],
+          lineTension: 0,
+          backgroundColor:'rgba(54, 162, 235, 0.2)',
+          borderColor: '#007bff',
+          borderWidth: 4,
+          pointBackgroundColor: '#007bff'
+        }]
+      },
+      options: {
+        scales: {
+          xAxes: [{
+            barPercentage: 0.5
+        }],
+          yAxes: [{
+            ticks: {
+              beginAtZero: true
+            }
+          }]
+        },
+        legend: {
+          display: false
+        }
+      }
+    });
+  }
+
+  function addTable(resp){
+    let el=document.getElementById("BGlist")
+    let BU=resp.data;
+    el.innerHTML='<table class="table table-striped table-sm"><thead class="thead-dark text-center"><tr><th>#</th><th>CATR</th><th>Aten_5G</th><th>Aten_4G</th></tr></thead>'+
+    '<tbody><tr class="text-center"><td>SAS</td><td>'+BU['CATR']['SAS']+'</td><td>'+BU['Aten_5G']['SAS']+'</td><td>'+BU['Aten_4G']['SAS']+'</td></tr>'
+    +'<tr class="text-center"><td>AIS</td><td>'+BU['CATR']['AIS']+'</td><td>'+BU['Aten_5G']['AIS']+'</td><td>'+BU['Aten_4G']['AIS']+'</td></tr>'+
+    '<tr class="text-center"><td>Connecting Home</td><td>'+BU['CATR']['CH']+'</td><td>'+BU['Aten_5G']['CH']+'</td><td>'+BU['Aten_4G']['CH']+'</td></tr>'+
+    '<tr class="text-center"><td>Networking</td><td>'+BU['CATR']['NW']+'</td><td>'+BU['Aten_5G']['NW']+'</td><td>'+BU['Aten_4G']['NW']+'</td></tr>'+
+    '<tr class="text-center"><td>ATD</td><td>'+BU['CATR']['ATD']+'</td><td>'+BU['Aten_5G']['ATD']+'</td><td>'+BU['Aten_4G']['ATD']+'</td></tr>'+'</tbody></table>'
+
+  }
+
+</script>
+{% endblock %}

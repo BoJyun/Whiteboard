@@ -4,68 +4,143 @@ from django.core import serializers
 from .forms import peopleForm,adminForm
 from .models import people
 import json,datetime
-# from .nowUser import nowUser,nextUser
 import threading
 import socket
-from .tcpserver import ThreadTCPserver,Handler_TCPServer
+import socketserver,threading
+from channels.generic.websocket import WebsocketConsumer
+from channels.layers import get_channel_layer
+from channels.exceptions import StopConsumer
+from asgiref.sync import async_to_sync
+import json
+import logging
+from time import sleep
+logger = logging.getLogger('django')
 
-# Create your views here.
+class ChatConsumer(WebsocketConsumer):
+    def connect(self):
+        print("Connect websocket")
+        self.room="sg24"
+        async_to_sync(self.channel_layer.group_add)(
+            self.room,
+            self.channel_name
+        )
+        self.accept()
+
+    def receive(self, text_data):
+        pass
+
+    def disconnect(self,close_code):
+        print("disconnect websocket")
+        raise StopConsumer()
+        pass
+
+    def chat_message(self,event):
+        message = event['message']
+        # Send message to WebSocket
+        self.send(text_data=json.dumps({
+            'nowUserNam': message[0],
+            'nowUserNum': message[1]
+        }))
+
+
+class ThreadTCPserver(socketserver.ThreadingMixIn,socketserver.TCPServer):
+    allow_reuse_address=True
+    pass
+
+class Handler_TCPServer(socketserver.BaseRequestHandler):
+
+    cur_thread = threading.current_thread()
+    print(f"Thread Handle: {cur_thread}")
+
+    def handle(self):
+        try:
+            print(self.client_address)
+            while True:
+                if self.client_address!="0.0.0.0":
+                    pass
+                msg=self.request.recv(1024).decode("utf-8")
+                print(f"client rev data:{msg}")
+                if msg is None:
+                    break
+                elif msg.split("_",1)[0]=="login":
+                    self.SG24login(msg.split("_",1)[1])
+                elif msg.split("_",1)[0]=="logout":
+                    self.SG24logout(msg.split("_",1)[1])
+                else:
+                    pass
+                send_msg="server received you message."
+                send_back=self.request.sendall(send_msg.encode("utf-8"))
+        except Exception as e:
+            print("Error {}: {}".format(self.client_address[0], e))
+        print("Client Disconnet ")
+
+    def Message_to_web(self):
+        channel_layer = get_channel_layer()
+        print(channel_layer)
+        async_to_sync(channel_layer.group_send)("sg24",{
+            "type": "chat_message",
+            "message": "new",
+        })
+
+    def SG24login(self,userEmID):
+        downTime=datetime.date.today()
+        if userEmID:
+            userData=people.objects.filter(employeeID=userEmID,done=False)
+            if userData.exists(): # check there is at least one object in some_queryset
+                if userData.filter(cutline="True").first() is not None:
+                    now_user=userData.filter(cutline="True").first()
+                else:
+                    now_user=userData.first()
+                User_Type.NowUser_name=now_user.user
+                User_Type.NowUser_LineNum=now_user.line_num
+                User_Type.NowUser_EmployeeID=userEmID
+                now_user.DownTime=downTime
+                now_user.done=True
+                now_user.save()
+                channel_layer = get_channel_layer()
+                print(channel_layer)
+                async_to_sync(channel_layer.group_send)("sg24",{
+                    "type": "chat_message",
+                    "message": [User_Type.NowUser_name,User_Type.NowUser_LineNum]
+                })
+            else:
+                print("Can not find your reservation")
+                pass
+        else:
+            print("Can not find your reservation")
+            pass
+
+    def SG24logout(self,userEmID):
+        downTime=datetime.date.today()
+        now_user=people.objects.filter(user=User_Type.NowUser_name,employeeID=User_Type.NowUser_EmployeeID,
+        line_num=User_Type.NowUser_LineNum)
+        now_user.update(done=True,DownTime=downTime)
+        User_Type.NowUser_name="None"
+        User_Type.NowUser_LineNum=0
+        User_Type.NowUser_EmployeeID=0
+        channel_layer = get_channel_layer()
+        print(channel_layer)
+        async_to_sync(channel_layer.group_send)("sg24",{
+            "type": "chat_message",
+            "message": [User_Type.NowUser_name,User_Type.NowUser_LineNum],
+        })
+
 def MyTCP():
-    tcp_server=ThreadTCPserver(("127.0.0.1",8001),Handler_TCPServer)
+    tcp_server=ThreadTCPserver(("172.18.109.109",8001),Handler_TCPServer)
     tcp_server.serve_forever()
-
 
 def DayTime():
     x=datetime.datetime.now()
     return [x.year,x.month,x.day]
 
-# def TCPreader():
-#     print("123")
-#     server=socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-#     bind_ip="127.0.0.1"
-#     bind_port=8001
-#     server.bind((bind_ip,bind_port))
-#     server.listen(2)
-
-#     while True:
-#         try:
-#             print('wait for connecting ...')
-#             client,addr=server.accept()
-#             print('Connected by ',addr)
-#             try:
-#                 while True:
-#                     print(3)
-#                     data=client.recv(1024)
-#                     print("Client recv data: ",data)
-#                     print(4)
-#                     if data==" ":
-#                         client.send(bytes("please send the message.","utf-8"))
-#                     else:
-#                         client.send(bytes("server received you message.","utf-8"))
-#                     print(5)
-#             except Exception as e:
-#                 print(1)
-#                 print(e)
-#         except Exception as e:
-#             print(2)
-#             print(e)
-# read_t=threading.Thread(target=TCPreader)
-# read_t.start()
-# User=nowUser()
-# NextUser=nextUser()
-
 class USER_TYPE():
     def __init__(self):
         self.NowUser_name="None"
         self.NowUser_EmployeeID=0
-        self.NowUser_ExtensionNum=0
+        self.NowUser_LineNum=0
         self.NextUser_name="None"
         self.NextUser_EmployeeID=0
-        self.NextUser_ExtensionNum=0
-
-User_Type=USER_TYPE()
-# CardReader=threading.Thread(target=MyTCP)
-# CardReader.start()
+        self.NextUser_LineNum=0
 
 def whiteboard(request):
     if request.method=='POST':
@@ -85,7 +160,7 @@ def whiteboard(request):
     else:
         form=peopleForm()
 
-    return render(request,'whiteboard.html',{'form':form})
+    return render(request,'whiteboard/whiteboard.html',{'form':form})
 
 def data_people(request):
     t=DayTime()
@@ -111,7 +186,7 @@ def data_people(request):
     if len(data)==0:
         User_Type.NextUser_name='None'
         User_Type.NextUser_EmployeeID=0
-        User_Type.NextUser_ExtensionNum=0
+        User_Type.NextUser_LineNum=0
         qs='None'
     else:
         qs = serializers.serialize('json', data,fields=('user','employeeID','extension_num','line_num','done',
@@ -119,7 +194,7 @@ def data_people(request):
         qs= json.loads(qs)
         User_Type.NextUser_name=data[0].user
         User_Type.NextUser_EmployeeID=data[0].employeeID
-        User_Type.NextUser_ExtensionNum=data[0].line_num
+        User_Type.NextUser_LineNum=data[0].line_num
 
     if len(data2)==0:
         qs2='None'
@@ -127,8 +202,8 @@ def data_people(request):
         qs2 = serializers.serialize('json', data2,fields=('user','employeeID','extension_num','line_num'))
         qs2= json.loads(qs2)
     # print(request.user)
-    return JsonResponse({'user':qs,'doneuser':qs2,'nowUserNam':User_Type.NowUser_name,'nowUserNum':User_Type.NowUser_ExtensionNum,
-    'nextUserNam':User_Type.NextUser_name,'nextUserNum':User_Type.NextUser_ExtensionNum,'logUser':str(request.user)})
+    return JsonResponse({'user':qs,'doneuser':qs2,'nowUserNam':User_Type.NowUser_name,'nowUserNum':User_Type.NowUser_LineNum,
+    'nextUserNam':User_Type.NextUser_name,'nextUserNum':User_Type.NextUser_LineNum,'logUser':str(request.user)})
 
 def authUserlogin(request): #讀卡機報到
     if request.method=='GET':
@@ -136,18 +211,20 @@ def authUserlogin(request): #讀卡機報到
         if userEmID:
             # https://chinese.freecodecamp.org/news/python-is-operator/
             userData=people.objects.filter(employeeID=userEmID,done=False)
-            if userData is not None:
+            if userData.exists():
                 if userData.filter(cutline="True").first() is not None:
                     now_user=userData.filter(cutline="True").first()
                 else:
                     now_user=userData.first()
                 User_Type.NowUser_name=now_user.user
-                User_Type.NowUser_ExtensionNum=now_user.line_num
+                User_Type.NowUser_LineNum=now_user.line_num
                 User_Type.NowUser_EmployeeID=userEmID
                 now_user.done=True
                 now_user.save()
-                return HttpResponse(json.dumps({"Message":"{id}報到成功".format(id = User_Type.NowUser_name),"nowUserNam":User_Type.NowUser_name,
-                "nowUserNum":User_Type.NowUser_ExtensionNum}),"application/json")
+                return HttpResponse(json.dumps({"Message":"{id}報到成功".format(id = User_Type.NowUser_name),
+                "nowUserNam":User_Type.NowUser_name,"nowUserNum":User_Type.NowUser_LineNum}),"application/json")
+            else:
+                pass
         else:
             return HttpResponse(json.dumps({"Message":"您尚未預約或請輸入正確工號"}))
 
@@ -155,10 +232,11 @@ def authUserlogin(request): #讀卡機報到
 
 def authUserlogout(request): #讀卡機刷退
     downTime=datetime.date.today()
-    now_user=people.objects.filter(user=User_Type.NowUser_name,employeeID=User_Type.NowUser_EmployeeID,line_num=User_Type.NowUser_ExtensionNum)
+    now_user=people.objects.filter(user=User_Type.NowUser_name,employeeID=User_Type.NowUser_EmployeeID,
+    line_num=User_Type.NowUser_LineNum)
     now_user.update(done=True,DownTime=downTime)
     User_Type.NowUser_name="None"
-    User_Type.NowUser_ExtensionNum=0
+    User_Type.NowUser_LineNum=0
     User_Type.NowUser_EmployeeID=0
 
     return HttpResponse(json.dumps({"Message":"刷退成功"}))
@@ -169,6 +247,11 @@ def authUserlogquit(request,num):
     quit_user.save()
 
     return HttpResponse(json.dumps({"Message":"棄單"}))
+
+User_Type=USER_TYPE()
+CardReader=threading.Thread(target=MyTCP)
+CardReader.start()
+
 
 #https://blog.csdn.net/weixin_42134789/article/details/80520500
 #https://blog.csdn.net/weixin_43789195/article/details/106072445

@@ -32,10 +32,14 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+# LOGIN_REDIRECT_URL='/chamber'
+# LOGIN_URL='/account/login'
+# LOGOUT_URL='/account/logout'
 
 # Application definition
 
 INSTALLED_APPS = [
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -44,6 +48,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'whiteboard.apps.WhiteboardConfig',
     'account.apps.AccountConfig',
+    'chamber.apps.ChamberConfig',
+
 ]
 
 MIDDLEWARE = [
@@ -76,7 +82,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'sas.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/3.1/ref/settings/#databases
 
@@ -86,7 +91,6 @@ DATABASES = {
         'NAME':  os.path.join(BASE_DIR, 'db.sqlite3'),
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
@@ -106,7 +110,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
 
@@ -120,7 +123,6 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
@@ -130,3 +132,18 @@ STATICFILES_DIRS=[os.path.join(BASE_DIR, 'static')]
 # SESSION_COOKIE_SECURE=True
 # SESSION_COOKIE_HTTPONLY=True
 # SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTOCOL', 'https')
+
+
+ASGI_APPLICATION = 'sas.routing.application'
+CHANNEL_LAYERS = {
+  'default': {
+    'BACKEND': 'channels_redis.core.RedisChannelLayer',
+    'CONFIG': {
+      'hosts': [('127.0.0.1', 6379)],
+    },
+  },
+}
+
+#Redis 主要是運行在 Linux 環境
+# https://www.codenong.com/cs106716730/
+# https://redis.io/download

@@ -13,10 +13,10 @@ def register(request):
             print(user_form.cleaned_data)
             new_user.set_password(user_form.cleaned_data['password1'])
             new_user.save()
-            return render(request,'register_done.html')
+            return render(request,'account/register_done.html')
     else:
         user_form=MyUserCreationForm()
-    return render(request,'register.html',{'user_form':user_form})
+    return render(request,'account/register.html',{'user_form':user_form})
 
 def userlogin(request):
     if request.user.is_authenticated:
@@ -39,11 +39,11 @@ def userlogin(request):
                 return HttpResponse('Invalid Login')
     else:
         Inform=LoginForm()
-        return render(request,'login.html',{'form':Inform})
+        return render(request,'account/login.html',{'form':Inform})
 
 def userlogout(request):
     if request.user.is_authenticated:
         logout(request)
-        return render(request,'logout.html')
+        return render(request,'account/logout.html')
     else:
         return redirect('/account/login/')
